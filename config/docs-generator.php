@@ -41,17 +41,31 @@ return [
     'providers' => [
 
         'deepseek' => [
-            'class'    => \Rdcstarr\DocsGenerator\Providers\DeepSeekProvider::class,
-            'api_key'  => env('DEEPSEEK_API_KEY'),
-            'base_url' => env('DEEPSEEK_BASE_URL'),
+            'class'    => \Rdcstarr\DocsGenerator\Providers\LaravelAiProvider::class,
+            'provider' => 'deepseek',
             'model'    => env('DEEPSEEK_MODEL', 'deepseek-chat'),
             'timeout'  => env('DEEPSEEK_TIMEOUT', 60),
         ],
 
         'openai' => [
-            'class'   => \Rdcstarr\DocsGenerator\Providers\OpenAIProvider::class,
-            'api_key' => env('OPENAI_API_KEY'),
-            'model'   => env('OPENAI_MODEL', 'gpt-4o'),
+            'class'    => \Rdcstarr\DocsGenerator\Providers\LaravelAiProvider::class,
+            'provider' => 'openai',
+            'model'    => env('OPENAI_MODEL', 'gpt-4o'),
+            'timeout'  => env('OPENAI_TIMEOUT', 60),
+        ],
+
+        'anthropic' => [
+            'class'    => \Rdcstarr\DocsGenerator\Providers\LaravelAiProvider::class,
+            'provider' => 'anthropic',
+            'model'    => env('ANTHROPIC_MODEL', 'claude-haiku-4-5-20251001'),
+            'timeout'  => env('ANTHROPIC_TIMEOUT', 60),
+        ],
+
+        'gemini' => [
+            'class'    => \Rdcstarr\DocsGenerator\Providers\LaravelAiProvider::class,
+            'provider' => 'gemini',
+            'model'    => env('GEMINI_MODEL'),
+            'timeout'  => env('GEMINI_TIMEOUT', 60),
         ],
 
     ],

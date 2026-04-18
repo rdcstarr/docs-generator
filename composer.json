@@ -23,18 +23,13 @@
     "require": {
         "php": "^8.3",
         "guzzlehttp/guzzle": "^7.0",
-        "illuminate/console": "^11.0|^12.0|^13.0",
-        "illuminate/http": "^11.0|^12.0|^13.0",
-        "illuminate/support": "^11.0|^12.0|^13.0"
+        "illuminate/console": "^13.0",
+        "illuminate/http": "^13.0",
+        "illuminate/support": "^13.0",
+        "laravel/ai": "0.x-dev"
     },
     "require-dev": {
-        "deepseek-php/deepseek-php-client": "@dev",
-        "openai-php/client": "^0.10",
-        "orchestra/testbench": "^9.0|^10.0"
-    },
-    "suggest": {
-        "deepseek-php/deepseek-php-client": "Required for the DeepSeek AI provider",
-        "openai-php/client": "Required for the OpenAI AI provider"
+        "orchestra/testbench": "^11.0"
     },
     "autoload": {
         "psr-4": {
@@ -59,6 +54,6 @@
             "php-http/discovery": true
         }
     },
-    "minimum-stability": "stable",
+    "minimum-stability": "dev",
     "prefer-stable": true
 }

@@ -13,7 +13,7 @@ When you work with AI coding assistants in Laravel projects, the model answers b
 
 - Three built-in sources: **Laravel**, **Flux UI** (with authentication for Flux Pro), and **Livewire**
 - Three IDE targets: **Claude** (with auto-sync of `CLAUDE.md` index), **Cursor** (`.mdc` with frontmatter), **Copilot** (`.instructions.md`)
-- Pluggable AI providers: **DeepSeek** and **OpenAI** out of the box, add your own by implementing an interface
+- Uses the **native Laravel AI SDK** (`laravel/ai`) — 10+ providers out of the box: DeepSeek, OpenAI, Anthropic, Gemini, Groq, xAI, Mistral, Ollama, Cohere, and more
 - Configurable per-project: enable only the sources you use
 - Smart retry with rate-limit backoff
 - Skip-existing with `--force` to regenerate
@@ -25,7 +25,14 @@ When you work with AI coding assistants in Laravel projects, the model answers b
 composer require rdcstarr/docs-generator
 ```
 
-Then publish the config file:
+Publish the Laravel AI SDK config and run its migrations (used internally by `laravel/ai`):
+
+```bash
+php artisan vendor:publish --provider="Laravel\Ai\AiServiceProvider"
+php artisan migrate
+```
+
+Then publish this package's config:
 
 ```bash
 php artisan vendor:publish --tag=docs-generator-config
@@ -33,15 +40,20 @@ php artisan vendor:publish --tag=docs-generator-config
 
 ## Setup
 
-Add the credentials for whichever AI provider and sources you use in `.env`:
+Add the credentials for whichever AI provider and sources you use in `.env`. API keys are read by the Laravel AI SDK, so you can use any provider it supports:
 
 ```ini
-# DeepSeek (default provider)
+# DeepSeek (default)
 DEEPSEEK_API_KEY=sk-...
 
-# OR OpenAI
+# OpenAI
 OPENAI_API_KEY=sk-...
-OPENAI_MODEL=gpt-4o
+
+# Anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+
+# Gemini
+GEMINI_API_KEY=...
 
 # Required only if you use the Flux UI source (for Flux Pro access)
 FLUXUI_EMAIL=you@example.com
@@ -94,10 +106,12 @@ Generate only specific pages (matches by slug, case-insensitive, substring):
 php artisan docs:generate laravel --only=routing,eloquent
 ```
 
-Use a different AI provider for this run:
+Use a different AI provider for this run (any key from `config/docs-generator.php`):
 
 ```bash
 php artisan docs:generate --provider=openai
+php artisan docs:generate --provider=anthropic
+php artisan docs:generate --provider=gemini
 ```
 
 Re-sync the `CLAUDE.md` index without generating any files:
@@ -146,39 +160,44 @@ CLAUDE.md                ← auto-updated with per-source index sections
 
 ## Extending
 
-### Add a custom AI provider
+### Add a new AI provider entry
 
-Implement `Rdcstarr\DocsGenerator\Contracts\AIProvider`:
+Most providers you'd want are already available natively through the Laravel AI SDK (OpenAI, Anthropic, Gemini, Groq, xAI, Mistral, Ollama, Cohere, DeepSeek, …). To add another entry to `config/docs-generator.php`, point `class` at `LaravelAiProvider` and set the SDK `provider` key plus the model you want:
+
+```php
+'providers' => [
+    'groq' => [
+        'class'    => \Rdcstarr\DocsGenerator\Providers\LaravelAiProvider::class,
+        'provider' => 'groq',
+        'model'    => env('GROQ_MODEL', 'llama-3.3-70b-versatile'),
+        'timeout'  => env('GROQ_TIMEOUT', 60),
+    ],
+],
+```
+
+Then add `GROQ_API_KEY=...` to `.env` and run `php artisan docs:generate --provider=groq`.
+
+### Add a fully custom AI provider
+
+If you need a service not supported by the Laravel AI SDK, implement `Rdcstarr\DocsGenerator\Contracts\AIProvider`:
 
 ```php
 namespace App\DocsGenerator;
 
 use Rdcstarr\DocsGenerator\Contracts\AIProvider;
 
-class AnthropicProvider implements AIProvider
+class MyCustomProvider implements AIProvider
 {
     public function __construct(array $config) { /* ... */ }
 
     public function generate(string $prompt): ?string
     {
-        // call Anthropic API, return Markdown
+        // call your API, return Markdown
     }
 }
 ```
 
-Register it in `config/docs-generator.php`:
-
-```php
-'providers' => [
-    'anthropic' => [
-        'class'   => \App\DocsGenerator\AnthropicProvider::class,
-        'api_key' => env('ANTHROPIC_API_KEY'),
-        'model'   => 'claude-opus-4-7',
-    ],
-],
-```
-
-Use it: `php artisan docs:generate --provider=anthropic`.
+Register it under `providers` and use it via `--provider=mycustom`.
 
 ### Add a custom documentation source
 
@@ -210,7 +229,8 @@ Implement `Rdcstarr\DocsGenerator\Contracts\Target` and register under `targets`
 ## Requirements
 
 - PHP **8.3+**
-- Laravel **11, 12, or 13**
+- Laravel **13+**
+- `laravel/ai` (installed automatically as a dependency)
 
 ## License
 
