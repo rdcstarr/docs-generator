@@ -22,7 +22,7 @@ class LaravelAiProvider implements AIProvider
 
         $this->provider = Lab::from($providerKey);
         $this->model    = $config['model'] ?? null;
-        $this->timeout  = (int) ($config['timeout'] ?? 60);
+        $this->timeout  = (int) ($config['timeout'] ?? 600);
     }
 
     public function generate(string $prompt): ?string
