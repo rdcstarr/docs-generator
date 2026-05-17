@@ -70,7 +70,21 @@ class ClaudeTarget implements Target
     }
 
     /**
-     * Synchronise the CLAUDE.md index section for the given source.
+     * Marker delimiting the start of the docs-generator managed block in the root index file.
+     *
+     * @var string
+     */
+    protected const BLOCK_START = '<!-- docs-generator:start -->';
+
+    /**
+     * Marker delimiting the end of the docs-generator managed block in the root index file.
+     *
+     * @var string
+     */
+    protected const BLOCK_END = '<!-- docs-generator:end -->';
+
+    /**
+     * Write the per-source index file and upsert the pointer line in the root managed block.
      *
      * @param  string  $source
      * @param  string  $sectionHeading
@@ -78,11 +92,29 @@ class ClaudeTarget implements Target
      */
     public function syncIndex(string $source, string $sectionHeading): void
     {
+        $label = str($sectionHeading)->after('## ')->trim()->toString();
         $outputDir = $this->outputDir($source);
+        $indexPath = $outputDir . '/index.md';
+
+        File::put($indexPath, $this->buildSourceIndex($outputDir, $label));
+
+        $this->upsertRootPointer($label, $this->relativeFromBase($indexPath));
+    }
+
+    /**
+     * Build the Markdown body for the per-source index.md file.
+     *
+     * @param  string  $outputDir
+     * @param  string  $label
+     * @return string
+     */
+    protected function buildSourceIndex(string $outputDir, string $label): string
+    {
         $docPrefix = $this->relativeFromBase($outputDir);
 
         $entries = collect(File::files($outputDir))
             ->map(fn (\SplFileInfo $file): string => $file->getFilename())
+            ->reject(fn (string $filename): bool => $filename === 'index.md')
             ->sort()
             ->values()
             ->map(function (string $filename) use ($outputDir): string
@@ -98,24 +130,60 @@ class ClaudeTarget implements Target
                 return "- `{$filename}` — {$description}";
             });
 
-        $intro = '> Read on demand with the Read tool. Load only the file relevant to the current task — do NOT load all files at once.';
+        $intro = '> Read on demand. Load only the file relevant to the current task — do NOT load all files at once.';
 
-        $block = $sectionHeading . "\n\n"
+        return "# {$label} documentation\n\n"
             . $intro . "\n\n"
             . "Available files in `{$docPrefix}/`:\n"
-            . $entries->implode("\n");
+            . $entries->implode("\n") . "\n";
+    }
+
+    /**
+     * Upsert the pointer line for the given source inside the root managed block.
+     *
+     * @param  string  $label
+     * @param  string  $indexRelPath
+     * @return void
+     */
+    protected function upsertRootPointer(string $label, string $indexRelPath): void
+    {
+        $pattern = '/' . preg_quote(self::BLOCK_START, '/') . '[\s\S]*?' . preg_quote(self::BLOCK_END, '/') . '/';
 
         $content = File::exists($this->indexFile) ? File::get($this->indexFile) : '';
-        $escaped = preg_quote($sectionHeading, '/');
-        $pattern = '/' . $escaped . '[\s\S]*?(?=\n## |\z)/';
+
+        $pointers = [];
+
+        if (preg_match($pattern, $content, $matches))
+        {
+            preg_match_all('/^- \*\*(.+?)\*\* → `(.+?)`$/m', $matches[0], $rows, PREG_SET_ORDER);
+
+            foreach ($rows as $row)
+            {
+                $pointers[$row[1]] = $row[2];
+            }
+        }
+
+        $pointers[$label] = $indexRelPath;
+        ksort($pointers);
+
+        $lines = collect($pointers)
+            ->map(fn (string $path, string $lbl): string => "- **{$lbl}** → `{$path}`")
+            ->implode("\n");
+
+        $block = self::BLOCK_START . "\n"
+            . "## Generated documentation\n\n"
+            . "Indexes maintained by docs-generator. Load on demand:\n\n"
+            . $lines . "\n"
+            . self::BLOCK_END;
 
         if (preg_match($pattern, $content))
         {
-            $content = preg_replace_callback($pattern, fn (): string => $block . "\n", $content);
+            $content = preg_replace($pattern, $block, $content, 1);
         }
         else
         {
-            $content = str($content)->rtrim()->toString() . "\n\n" . $block . "\n";
+            $trimmed = str($content)->rtrim()->toString();
+            $content = filled($trimmed) ? $trimmed . "\n\n" . $block . "\n" : $block . "\n";
         }
 
         File::put($this->indexFile, $content);

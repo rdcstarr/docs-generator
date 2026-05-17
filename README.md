@@ -128,17 +128,34 @@ php artisan docs:generate laravel --sync-only
 ```
 .claude/
 ├── laravel/
+│   ├── index.md         ← per-source index (filenames + H1 titles)
 │   ├── routing.md
 │   ├── eloquent.md
 │   └── ...
-├── fluxui/
+├── flux/
+│   ├── index.md
 │   └── ...
 └── livewire/
+    ├── index.md
     └── ...
-CLAUDE.md                ← auto-updated with per-source index sections
+CLAUDE.md                ← single managed block pointing at the per-source indexes
 ```
 
-`CLAUDE.md` gets a `## Laravel` / `## Flux UI` / `## Livewire` section listing every generated file with its H1 title, so the model can pick the right file on demand.
+Each source gets its own `index.md` listing every generated file with its H1 title. Your root `CLAUDE.md` is touched only between markers:
+
+```markdown
+<!-- docs-generator:start -->
+## Generated documentation
+
+Indexes maintained by docs-generator. Load on demand:
+
+- **Flux UI** → `.claude/flux/index.md`
+- **Laravel** → `.claude/laravel/index.md`
+- **Livewire** → `.claude/livewire/index.md`
+<!-- docs-generator:end -->
+```
+
+Anything outside `<!-- docs-generator:start -->` … `<!-- docs-generator:end -->` is preserved untouched, so it's safe to keep your own project instructions in the same file.
 
 ### Cursor target
 
