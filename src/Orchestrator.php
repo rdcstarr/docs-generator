@@ -62,13 +62,15 @@ class Orchestrator
     /**
      * Run the full documentation generation flow for a single driver.
      *
+     * The provider may be null when running with sync_only — index sync does not call any AI.
+     *
      * @param  \Rdcstarr\DocsGenerator\Contracts\DocsDriver  $driver
-     * @param  \Rdcstarr\DocsGenerator\Contracts\AIProvider  $provider
+     * @param  \Rdcstarr\DocsGenerator\Contracts\AIProvider|null  $provider
      * @param  \Rdcstarr\DocsGenerator\Contracts\Target  $target
      * @param  array{force?: bool, only?: ?string, sync_only?: bool, retry_attempts?: int, retry_sleep_ms?: int, throttle_seconds?: int, target_key?: string}  $options
      * @return array{succeeded: int, failed: array<int, string>, total: int}
      */
-    public function run(DocsDriver $driver, AIProvider $provider, Target $target, array $options = []): array
+    public function run(DocsDriver $driver, ?AIProvider $provider, Target $target, array $options = []): array
     {
         $force = (bool) ($options['force'] ?? false);
         $only = $options['only'] ?? null;

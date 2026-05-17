@@ -39,15 +39,17 @@ class GenerateDocsCommand extends Command
     {
         $sources = $this->resolveSources();
         $targetKey = (string) ($this->option('for') ?: config('docs-generator.default_target'));
-        $providerKey = (string) ($this->option('provider') ?: config('docs-generator.default_provider'));
+        $syncOnly = (bool) $this->option('sync-only');
 
         $target = $this->resolveTarget($targetKey);
-        $provider = $this->resolveProvider($providerKey);
+        $provider = $syncOnly
+            ? null
+            : $this->resolveProvider((string) ($this->option('provider') ?: config('docs-generator.default_provider')));
 
         $options = [
             'force'            => (bool) $this->option('force'),
             'only'             => $this->option('only') ?: null,
-            'sync_only'        => (bool) $this->option('sync-only'),
+            'sync_only'        => $syncOnly,
             'retry_attempts'   => (int) config('docs-generator.retry_attempts', 3),
             'retry_sleep_ms'   => (int) config('docs-generator.retry_sleep_ms', 2000),
             'throttle_seconds' => (int) config('docs-generator.throttle_seconds', 1),
